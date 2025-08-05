@@ -11,30 +11,31 @@ function createToken(id){
 
 const registerUser= async (req,res)=>{
     try{
+        console.log('registering user----',req.body)
         const {name,email,password}=req.body;
         const alreadyExist= await User.findOne({email})
         if (alreadyExist) return res.status(400).json({msg:"user already exists"});
-        const currnetUser=await User.create({name,email,password});
+        const hashedPassword=await bcrypt.hash(password,12);
+        const currnetUser=await User.create({name,email,password:hashedPassword});
         const token= createToken(currnetUser._id);
         res.json({user:{name:currnetUser.name,email:currnetUser.email},token})
     }
     catch(err){
-        console.log('errorrrr-------')
+        console.log('errorrrr-------',err)
     }
 
 }
 
 const signIn = async (req,res)=>{
     try{
-        const {name,email,password}=req.body;
+        const {email,password}=req.body;
         const inDBusersEmail=await User.findOne({email})
-        console.log('dafakk-----',inDBusersEmail)
+        const name= inDBusersEmail.name
         const cryptPassword=inDBusersEmail.password
         const isPasswordMatching= await bcrypt.compare(password,cryptPassword)
         if(!isPasswordMatching){
             res.status(401).json({message:'unauthorised user'})
         }
-        console.log(isPasswordMatching,'----');
         const token= createToken(inDBusersEmail._id);
         res.json({user:name,token})
     }
