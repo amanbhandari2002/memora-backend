@@ -25,7 +25,8 @@ const generateCaption = async (filePath, fileName) => {
 const addMemory = async (req, res) => {
     try {
         const { title, location, date, long, lat } = req.body
-        description=await generateCaption(req.file.path, req.file.filename)
+        // description=await generateCaption(req.file.path, req.file.filename)
+        description='Temp description'
         const image=req.file.filename
         const memory=await Memory.create({
             user: req.id,
@@ -43,7 +44,7 @@ const addMemory = async (req, res) => {
     }
 }
 
-const getUserMemory= async (req,res)=>{
+const getUserAllMemory= async (req,res)=>{
     try{
     console.log(req.body._id)
     const userMemory= await Memory.find({user:req._id})
@@ -53,8 +54,22 @@ const getUserMemory= async (req,res)=>{
     }
 }
 
+const searchUserQuery= async (req,res)=>{
+    try{
+        console.log('herere-----')
+        const response= await axios.post(process.env.ML_SERVICE_URL+"/search-image-vector",{query:req.body.query,user_id:req.body.user_id})
+
+        
+        res.status(200).json(response.data)
+    }
+    catch(err){
+        console.log(err)
+        res.status(500).json({err})
+    }
+}
+
 
 // const deleteMemory= async (req.res)=>{
 
 // }
-module.exports={addMemory ,getUserMemory}
+module.exports={addMemory ,getUserAllMemory,searchUserQuery}
