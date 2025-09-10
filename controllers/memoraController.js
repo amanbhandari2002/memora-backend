@@ -14,7 +14,7 @@ const generateCaption = async (filePath, fileName, user_uid) => {
         console.log('dafaakkk--')
         const signedURL = await generateSignedUrl(fileName)
         console.log("ab kya chuda----->", signedURL)
-        const response = await axios.post(process.env.ML_SERVICE_URL + "/generate-caption", { filePath: signedURL, fileName ,user_uid})
+        const response = await axios.post(process.env.ML_SERVICE_URL + "/generate-caption", { filePath: signedURL, fileName, user_uid })
 
         return response.data.caption
     } catch (err) {
@@ -33,7 +33,7 @@ const addMemory = async (req, res) => {
         console.log("titelle---", Uploadedimage, title)
         console.log('filekey---->', req.file.key)
         console.log('uid bc---->', req.body.user_id)
-        description = await generateCaption(req.file.location, req.file.key,req.body.user_id)
+        description = await generateCaption(req.file.location, req.file.key, req.body.user_id)
         // description='Temp description'
         console.log("got here-----image--->", description)
 
@@ -60,7 +60,7 @@ const getUserAllMemory = async (req, res) => {
         console.log('2342---', req.query.user_id)
         const user_id = req.query.user_id;
         const userMemory = await Memory.find({ user: user_id })
-        
+
         for (let key in userMemory) {
 
             const signedURL = await generateSignedUrl(userMemory[key].image)  // Generating Singned url to access image urls from AWS s3.
@@ -75,11 +75,15 @@ const getUserAllMemory = async (req, res) => {
 
 const searchUserQuery = async (req, res) => {
     try {
-        console.log('herere-----',req.body.query,req.body.user_id)
         const response = await axios.post(process.env.ML_SERVICE_URL + "/search-image-vector", { query: req.body.query, user_id: req.body.user_id })
 
+        const searchedData = response.data
 
-        res.status(200).json(response.data)
+        for (let i = 0; i < searchedData.results.length; i++) {
+            const signedURL = await generateSignedUrl(searchedData.results[i].payload.image_name);
+            searchedData.results[i].payload.image = signedURL; // add new property
+        }
+        res.status(200).json(searchedData)
     }
     catch (err) {
         console.log(err)
