@@ -5,7 +5,9 @@ const fs = require('fs');
 const FormData = require('form-data');
 const { generateSignedUrl } = require("../controllers/S3actions")
 const mongoose = require('mongoose');
+const User = require('../models/User')
 const { ObjectId } = mongoose;
+const { getNextMonday } = require('../controllers/commonFunction')
 // BELOW FUNCTION SENDS THE IMAGE TO PYTHON ML SERVICE TO GENERATE CAPTION
 
 
@@ -28,7 +30,7 @@ const generateCaption = async (filePath, fileName, user_uid) => {
 const addMemory = async (req, res) => {
     try {
         console.log("hereryoo---")
-        const { title, location, date, long, lat } = req.body
+        const { title, location, date, long, lat, fileSize } = req.body
         const Uploadedimage = req.file
         console.log("titelle---", Uploadedimage, title)
         console.log('filekey---->', req.file.key)
@@ -45,7 +47,16 @@ const addMemory = async (req, res) => {
             title,
             date,
             image: image,
-            cordinates: { lat, long }
+            cordinates: { lat, long },
+            fileSize: fileSize
+        })
+
+        await User.findByIdAndUpdate(req.body.user_id, {
+            $inc: {
+                totalStorageUsed: fileSize,
+                totalImageCount: 1,
+                imageUploadThisweek: 1
+            }
         })
 
         res.status(201).json({ memory })
@@ -92,7 +103,38 @@ const searchUserQuery = async (req, res) => {
 }
 
 
+const userAnalytics = async (req, res) => {
+    const user_id = req.query.user_id;
+    const now = Date.now();
+    try {
+        const user = await User.findById(user_id)
+
+        if (!user) {
+            res.status(404).json({ msg: "User not found" })
+        }
+        if (user.imageCountResetat && user.imageCountResetat.getTime() <= now) {
+            user.imageCountResetat = getNextMonday();
+            user.imageUploadThisweek = 0;
+            await user.save()
+        }
+
+
+        res.status(200).json({
+            totalImageCount: user.totalImageCount,
+            totalStorageUsed: user.totalStorageUsed,
+            imageCountResetat: user.imageCountResetat,
+            imageUploadThisweek: user.imageUploadThisweek
+        })
+    }
+    catch (err) {
+        console.log('why time error--->', err)
+        res.status(500).json({ err })
+    }
+
+}
+
+
 // const deleteMemory= async (req.res)=>{
 
 // }
-module.exports = { addMemory, getUserAllMemory, searchUserQuery }
+module.exports = { addMemory, getUserAllMemory, searchUserQuery, userAnalytics }

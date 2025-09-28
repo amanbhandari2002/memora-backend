@@ -11,7 +11,8 @@ const memoraSchema= new mongoose.Schema({
     cordinates:{
         long: Number,
         lat:Number
-    } 
+    },
+    imageSize:Number
 },{timestamps:true})
 
 
